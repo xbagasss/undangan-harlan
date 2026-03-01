@@ -1,248 +1,181 @@
-<!DOCTYPE html>
-<html lang="id">
+document.addEventListener('DOMContentLoaded', () => {
+    // 1. Initialize AOS (Animation on Scroll)
+    AOS.init({
+        once: true,
+        offset: 80,
+        easing: 'ease-out-cubic',
+    });
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Undangan Khitanan - Muhammad Harlan Fadilah</title>
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Outfit:wght@300;400;500;600&display=swap"
-        rel="stylesheet">
-    <!-- FontAwesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- AOS Library -->
-    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
-</head>
+    // 2. Handle URL Parameter for Guest Name
+    const urlParams = new URLSearchParams(window.location.search);
+    const to = urlParams.get('to');
+    if (to) {
+        const guestNameStr = decodeURIComponent(to).replace(/\b\w/g, l => l.toUpperCase());
+        document.getElementById('guest-name').textContent = guestNameStr;
+    }
 
-<body style="overflow: hidden;">
+    // 3. UI Elements
+    const btnOpen = document.getElementById('open-invitation');
+    const coverWrapper = document.getElementById('cover');
+    const mainContent = document.getElementById('main-content');
+    const bgMusicIframe = document.getElementById('bg-music-iframe');
+    const musicControl = document.getElementById('music-control');
+    const musicIcon = musicControl.querySelector('i');
 
-    <!-- Background Elements (Continuous Animation) -->
-    <div class="bg-elements">
-        <div class="glow-orb orb-1"></div>
-        <div class="glow-orb orb-2"></div>
-        <div id="particles-container"></div>
-        <img src="assets/abstract_shape.png" class="floating-shape shape-1" alt="">
-        <img src="assets/gold_frame.png" class="floating-shape shape-2" alt="">
-    </div>
+    let isPlaying = false;
 
-    <!-- The Grand Cover (Split Door Style) -->
-    <section id="cover" class="cover-wrapper">
-        <div class="cover-door door-left"></div>
-        <div class="cover-door door-right"></div>
+    // 4. Open Invitation Logic (Split Door Effect)
+    btnOpen.addEventListener('click', () => {
+        // Trigger split door CSS animation
+        coverWrapper.classList.add('open');
 
-        <div class="cover-content-box">
-            <div class="cover-frame">
-                <p class="subtitle fade-in-up" style="animation-delay: 0.3s;">Undangan Khitanan</p>
-                <h1 class="title-cursive scale-in" style="animation-delay: 0.6s;">Muhammad<br>Harlan Fadilah</h1>
-                <p class="date fade-in-up" style="animation-delay: 0.9s;">Sabtu, 7 Maret 2026</p>
+        // Show main content and reveal smoothly
+        mainContent.style.pointerEvents = 'auto';
+        mainContent.style.opacity = '1';
 
-                <div class="guest-box fade-in-up" style="animation-delay: 1.2s;">
-                    <p class="to-text">Kepada Yth. Bapak/Ibu/Saudara/i</p>
-                    <div class="guest-name-highlight"><span id="guest-name"></span></div>
+        // Allow body scroll
+        document.body.style.overflow = 'auto';
+        document.body.style.overflowX = 'hidden';
+
+        // Play Audio (YouTube Iframe)
+        if (bgMusicIframe) {
+            bgMusicIframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'playVideo' }), '*');
+            isPlaying = true;
+            musicControl.style.display = 'flex';
+            musicControl.classList.remove('paused');
+        }
+
+        // Hide cover wrapper completely from DOM after animation completes to free memory
+        setTimeout(() => {
+            coverWrapper.style.display = 'none';
+            // Refresh AOS positioning since layout changed
+            AOS.refresh();
+        }, 1500);
+    });
+
+    // 5. Music Control Toggle
+    musicControl.addEventListener('click', () => {
+        if (isPlaying) {
+            bgMusicIframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'pauseVideo' }), '*');
+            musicControl.classList.add('paused');
+        } else {
+            bgMusicIframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'playVideo' }), '*');
+            musicControl.classList.remove('paused');
+        }
+        isPlaying = !isPlaying;
+    });
+
+    // 6. Countdown Timer Logic
+    // Target Date: 7 Maret 2026, 15:30 WIB
+    const countDownDate = new Date("Mar 07, 2026 15:30:00").getTime();
+
+    const x = setInterval(function () {
+        const now = new Date().getTime();
+        const distance = countDownDate - now;
+
+        const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+        // Format to 2 digits
+        document.getElementById("cd-days").innerText = days.toString().padStart(2, '0');
+        document.getElementById("cd-hours").innerText = hours.toString().padStart(2, '0');
+        document.getElementById("cd-minutes").innerText = minutes.toString().padStart(2, '0');
+        document.getElementById("cd-seconds").innerText = seconds.toString().padStart(2, '0');
+
+        if (distance < 0) {
+            clearInterval(x);
+            document.querySelector(".countdown-container").innerHTML = "<h3 style='color: var(--primary);'>Acara Sedang Berlangsung / Telah Selesai</h3>";
+        }
+    }, 1000);
+
+
+    // 7. RSVP Form & Local Storage Logic
+    const rsvpForm = document.getElementById('rsvp-form');
+    const wishesList = document.getElementById('wishes-list');
+
+    loadWishes();
+
+    rsvpForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+
+        const name = document.getElementById('name').value;
+        const attendance = document.getElementById('attendance').value;
+        const message = document.getElementById('message').value;
+
+        if (!name || !attendance || !message) return;
+
+        const newWish = { name, attendance, message, timestamp: new Date().toISOString() };
+
+        let wishes = JSON.parse(localStorage.getItem('undangan_wishes_v3') || '[]');
+        wishes.unshift(newWish);
+        localStorage.setItem('undangan_wishes_v3', JSON.stringify(wishes));
+
+        renderWish(newWish, true); // true applies quick animation for just added item
+        rsvpForm.reset();
+
+        // Remove focus styling if any
+        Array.from(rsvpForm.elements).forEach(el => el.blur());
+    });
+
+    function loadWishes() {
+        let wishes = JSON.parse(localStorage.getItem('undangan_wishes_v3'));
+
+        if (!wishes) {
+            // Start fresh
+            wishes = [];
+            localStorage.setItem('undangan_wishes_v3', JSON.stringify(wishes));
+        }
+
+        wishesList.innerHTML = '';
+        wishes.forEach(wish => renderWish(wish, false));
+    }
+
+    function renderWish(wish, isNew) {
+        const isHadir = wish.attendance === 'Hadir';
+        const badgeClass = isHadir ? 'wish-badge present' : 'wish-badge absent';
+        const badgeText = isHadir ? '<i class="fa-solid fa-check"></i> Hadir' : '<i class="fa-solid fa-xmark"></i> Tidak Hadir';
+
+        const wishHTML = `
+            <div class="wish-item" ${isNew ? 'style="animation: fadeInDown 0.5s;"' : ''}>
+                <div class="wish-header">
+                    <span class="wish-name">${wish.name}</span>
+                    <span class="${badgeClass}">${badgeText}</span>
                 </div>
-
-                <button id="open-invitation" class="btn-gold pulse-btn fade-in-up" style="animation-delay: 1.5s;">
-                    <i class="fa-solid fa-envelope-open"></i> Buka Undangan
-                </button>
+                <div class="wish-msg">"${wish.message}"</div>
             </div>
-        </div>
-    </section>
+        `;
 
-    <!-- Main Content -->
-    <main id="main-content" style="opacity: 0; pointer-events: none; transition: opacity 1.5s ease 1s;">
+        wishesList.insertAdjacentHTML(isNew ? 'afterbegin' : 'beforeend', wishHTML);
+    }
 
-        <!-- Opening Bismillah -->
-        <section class="section hero-section">
-            <div class="asym-card" data-aos="fade-up" data-aos-duration="1500">
-                <span class="quote-mark left">"</span>
-                <h2 class="bismillah-text">بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيم</h2>
-                <p class="salam">Assalamu'alaikum Warahmatullahi Wabarakatuh</p>
-                <p class="intro-text">Dengan memohon Rahmat dan Ridho Allah SWT, kami bermaksud menyelenggarakan
-                    Tasyakuran Khitanan, Pengajian, sekaligus Buka Puasa Bersama putra kami:</p>
-                <span class="quote-mark right">"</span>
-            </div>
-        </section>
+    // 8. Generate Background Particles (Gold Dust)
+    function createParticles() {
+        const container = document.getElementById('particles-container');
+        if (!container) return;
 
-        <!-- Profile / Family -->
-        <section class="section profile-section">
-            <div class="overlap-container">
-                <img src="assets/abstract_shape.png" class="decorator bg-blob" alt="" data-aos="fade-right"
-                    data-aos-duration="2000">
+        const particleCount = 40; // Number of particles
 
-                <div class="profile-image-wrapper" data-aos="zoom-in" data-aos-duration="1200">
-                    <div class="img-border">
-                        <img src="assets/boy.jpg?v=2" alt="Foto Anak" class="profile-img">
-                    </div>
-                </div>
+        for (let i = 0; i < particleCount; i++) {
+            const particle = document.createElement('div');
+            particle.classList.add('particle');
 
-                <div class="profile-details card-glass" data-aos="fade-left" data-aos-duration="1200"
-                    data-aos-delay="300">
-                    <p class="watermark-text">Khitanan</p>
-                    <h1 class="title-cursive">Muhammad Harlan Fadilah</h1>
-                    <div class="divider-leaf"></div>
-                    <p class="parents-text">Putra Pertama dari<br><span class="parents-name">Bapak iyan arijona & Ibu
-                            Eva Nurmalasari</span></p>
-                </div>
-            </div>
-        </section>
+            // Randomize properties for organic feel
+            const size = Math.random() * 6 + 2; // Size between 2px and 8px
+            const left = Math.random() * 100; // Position 0% to 100%
+            const duration = Math.random() * 15 + 15; // Animation duration 15s to 30s
+            const delay = Math.random() * 20; // Start delay 0s to 20s
 
-        <!-- Countdown Timer -->
-        <section class="section countdown-section">
-            <div class="card-glass text-center" data-aos="fade-up" data-aos-duration="1000">
-                <h3 class="section-subtitle">Menghitung Waktu</h3>
-                <h2 class="section-title">Menuju Hari Bahagia</h2>
+            particle.style.width = `${size}px`;
+            particle.style.height = `${size}px`;
+            particle.style.left = `${left}%`;
+            particle.style.animationDuration = `${duration}s`;
+            particle.style.animationDelay = `${delay}s`;
 
-                <div class="countdown-container">
-                    <div class="cd-box"><span id="cd-days">00</span><small>Hari</small></div>
-                    <div class="cd-box"><span id="cd-hours">00</span><small>Jam</small></div>
-                    <div class="cd-box"><span id="cd-minutes">00</span><small>Menit</small></div>
-                    <div class="cd-box"><span id="cd-seconds">00</span><small>Detik</small></div>
-                </div>
-                <a href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=Khitanan+Muhammad+Harlan+Fadilah&dates=20260307T083000Z/20260307T120000Z"
-                    target="_blank" class="btn-outline mt-4">
-                    <i class="fa-regular fa-calendar-plus"></i> Simpan ke Kalender
-                </a>
-            </div>
-        </section>
+            container.appendChild(particle);
+        }
+    }
 
-        <!-- Event Details (Grid Asimetris) -->
-        <section class="section event-section">
-            <h2 class="section-title text-center" data-aos="fade-down">Rangkaian Acara</h2>
-
-            <div class="event-timeline">
-
-                <div class="event-card-modern right-align" data-aos="fade-up" data-aos-duration="1000">
-                    <div class="event-icon"><i class="fa-solid fa-scissors"></i></div>
-                    <div class="event-info card-glass">
-                        <h3>Pelaksanaan Khitan</h3>
-                        <p class="e-date">Sabtu, 7 Maret 2026</p>
-                        <p class="e-time"><i class="fa-regular fa-clock"></i> 08.00 WIB - Selesai</p>
-                    </div>
-                </div>
-
-                <div class="event-card-modern left-align" data-aos="fade-up" data-aos-duration="1000"
-                    data-aos-delay="200">
-                    <div class="event-icon"><i class="fa-solid fa-utensils"></i></div>
-                    <div class="event-info card-glass">
-                        <h3>Resepsi Syukuran</h3>
-                        <p class="e-date">Sabtu, 7 Maret 2026</p>
-                        <p class="e-time"><i class="fa-regular fa-clock"></i> 15.30 WIB - Selesai</p>
-                        <hr>
-                        <p class="e-loc">Markas MTR Karawang / Rumah Bpk. Warjo</p>
-                        <p class="e-addr">Karawang Wetan, Kec. Karawang Tim., Karawang, Jawa Barat 41314</p>
-                        <a href="https://maps.app.goo.gl/F7rzXfFyrcZ5sTfH9" target="_blank" class="btn-inline">Buka Peta
-                            Lokasi <i class="fa-solid fa-arrow-right"></i></a>
-                    </div>
-                </div>
-
-                <div class="event-card-modern right-align" data-aos="fade-up" data-aos-duration="1000"
-                    data-aos-delay="400">
-                    <div class="event-icon"><i class="fa-solid fa-book-open-reader"></i></div>
-                    <div class="event-info card-glass">
-                        <h3>Pengajian & Doa Bersama</h3>
-                        <p class="e-date">Sabtu, 7 Maret 2026</p>
-                        <p class="e-time"><i class="fa-regular fa-clock"></i> 15.30 WIB - Selesai</p>
-                        <hr>
-                        <p class="e-loc">Markas MTR Karawang / Rumah Bpk. Warjo</p>
-                        <p class="e-addr">Karawang Wetan, Kec. Karawang Tim., Karawang, Jawa Barat 41314</p>
-                    </div>
-                </div>
-
-                <div class="event-card-modern left-align" data-aos="fade-up" data-aos-duration="1000"
-                    data-aos-delay="600">
-                    <div class="event-icon"><i class="fa-solid fa-bowl-food"></i></div>
-                    <div class="event-info card-glass">
-                        <h3>Buka Puasa Bersama</h3>
-                        <p class="e-date">Sabtu, 7 Maret 2026</p>
-                        <p class="e-time"><i class="fa-regular fa-clock"></i> 17.30 WIB - Selesai</p>
-                        <hr>
-                        <p class="e-loc">Markas MTR Karawang / Rumah Bpk. Warjo</p>
-                        <p class="e-addr">Karawang Wetan, Kec. Karawang Tim., Karawang, Jawa Barat 41314</p>
-                        <p class="e-note">*Menyediakan hidangan berbuka dan fasilitas sholat Maghrib berjamaah.</p>
-                    </div>
-                </div>
-
-            </div>
-        </section>
-
-        <!-- Premium Masonry Gallery -->
-        <section class="section gallery-section">
-            <h2 class="section-title text-center" data-aos="fade-up">Galeri</h2>
-            <div class="masonry-grid">
-                <div class="masonry-item item-large" data-aos="zoom-in-up" data-aos-duration="1000"><img
-                        src="assets/boy.jpg?v=2" alt="Gallery"></div>
-                <div class="masonry-item item-large" data-aos="zoom-in-up" data-aos-duration="1000"
-                    data-aos-delay="100"><img src="assets/WhatsApp Image 2026-03-01 at 11.45.58.jpeg" alt="Gallery"
-                        onerror="this.src='assets/bg.png'"></div>
-            </div>
-        </section>
-
-        <!-- RSVP Form Section -->
-        <section class="section rsvp-section">
-            <div class="rsvp-container card-glass" data-aos="fade-up">
-                <div class="rsvp-header">
-                    <h2>Kehadiran & Doa</h2>
-                    <p>Merupakan suatu kehormatan dan kebahagiaan bagi kami apabila Bapak/Ibu/Saudara/i berkenan hadir
-                        dan memberikan doa restu.</p>
-                </div>
-
-                <form id="rsvp-form" class="modern-form">
-                    <div class="input-block">
-                        <input type="text" id="name" required placeholder=" ">
-                        <label for="name">Nama Lengkap</label>
-                    </div>
-                    <div class="input-block">
-                        <select id="attendance" required>
-                            <option value="" disabled selected>Konfirmasi Kehadiran</option>
-                            <option value="Hadir">InsyaAllah Hadir</option>
-                            <option value="Tidak Hadir">Maaf, Tidak Bisa Hadir</option>
-                        </select>
-                    </div>
-                    <div class="input-block">
-                        <textarea id="message" rows="3" required placeholder=" "></textarea>
-                        <label for="message">Tuliskan Ucapan & Doa</label>
-                    </div>
-                    <button type="submit" class="btn-gold w-100">Kirim Konfirmasi</button>
-                </form>
-
-                        <!-- Messages dynamically inserted here -->
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Footer -->
-        <footer class="footer">
-            <img src="assets/abstract_shape.png" class="footer-bg-shape" alt="">
-            <div class="footer-content" data-aos="fade-up">
-                <h2 class="title-cursive">Muhammad Harlan Fadilah</h2>
-                <p>Keluarga Bapak iyan arijona & Ibu Eva Nurmalasari</p>
-                <div class="divider-leaf center-leaf mt-3 mb-3"></div>
-                <p class="small-text">Terima Kasih atas doa dan restu Bapak/Ibu/Sdr/i.</p>
-                <div class="watermark mt-4">
-                    <small>Created with ❤️ | Exclusive Invitation</small>
-                </div>
-            </div>
-        </footer>
-    </main>
-
-    <!-- Background Music (YouTube) -->
-    <iframe id="bg-music-iframe" src="https://www.youtube.com/embed/6H6Gz2AKgI0?enablejsapi=1&autoplay=0&loop=1&playlist=6H6Gz2AKgI0&controls=0"
-        allow="autoplay; encrypted-media" style="display: none;">
-    </iframe>
-
-    <!-- Floating Audio Control -->
-    <button id="music-control" class="music-btn" style="display: none;">
-        <i class="fa-solid fa-music"></i>
-    </button>
-
-    <!-- Scripts -->
-    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
-    <script src="script.js"></script>
-</body>
-
-</html>
+    createParticles();
+});
