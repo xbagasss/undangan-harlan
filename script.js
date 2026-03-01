@@ -126,10 +126,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Seeder data
             wishes = [
                 {
-                    name: 'Keluarga Budi Santoso',
-                    attendance: 'Hadir',
-                    message: 'Barakallah, semoga Rayyan menjadi anak yang sholeh, berbakti, dan berguna bagi agama, nusa dan bangsa. Aamiin.',
-                    timestamp: new Date().toISOString()
+                   
                 }
             ];
             localStorage.setItem('undangan_wishes_v2', JSON.stringify(wishes));
