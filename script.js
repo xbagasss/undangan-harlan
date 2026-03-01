@@ -108,9 +108,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const newWish = { name, attendance, message, timestamp: new Date().toISOString() };
 
-        let wishes = JSON.parse(localStorage.getItem('undangan_wishes_v2') || '[]');
+        let wishes = JSON.parse(localStorage.getItem('undangan_wishes_v3') || '[]');
         wishes.unshift(newWish);
-        localStorage.setItem('undangan_wishes_v2', JSON.stringify(wishes));
+        localStorage.setItem('undangan_wishes_v3', JSON.stringify(wishes));
 
         renderWish(newWish, true); // true applies quick animation for just added item
         rsvpForm.reset();
@@ -120,16 +120,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function loadWishes() {
-        let wishes = JSON.parse(localStorage.getItem('undangan_wishes_v2'));
+        let wishes = JSON.parse(localStorage.getItem('undangan_wishes_v3'));
 
-        if (!wishes || wishes.length === 0) {
-            // Seeder data
-            wishes = [
-                {
-                   
-                }
-            ];
-            localStorage.setItem('undangan_wishes_v2', JSON.stringify(wishes));
+        if (!wishes) {
+            // Start fresh
+            wishes = [];
+            localStorage.setItem('undangan_wishes_v3', JSON.stringify(wishes));
         }
 
         wishesList.innerHTML = '';
